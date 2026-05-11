@@ -328,6 +328,42 @@ tbody tr:hover {
   font-size: 0.85em;
 }
 
+.headers-section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.headers-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.header-row + .header-row {
+  margin-top: 0.5rem;
+}
+
+.header-remove {
+  padding: 0.25rem 0.55rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.header-remove:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
 .error {
   margin: 0;
   padding: 0.625rem 0.875rem;

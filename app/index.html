@@ -47,6 +47,14 @@
             Content type
             <input type="text" id="contentType" value="application/json">
           </label>
+          <div class="headers-section">
+            <div class="headers-header">
+              <span class="path-params-label">Response headers</span>
+              <button type="button" class="small ghost" id="add-header-btn">+ Add header</button>
+            </div>
+            <div id="headers-rows"></div>
+            <small class="hint">Values support <code>{{name}}</code> path-parameter substitution.</small>
+          </div>
           <label>
             Body
             <textarea id="body" rows="6" placeholder='{"hello":"world"}'></textarea>

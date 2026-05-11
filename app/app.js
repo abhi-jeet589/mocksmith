@@ -13,6 +13,8 @@ const table = document.getElementById("mocks-table");
 const emptyState = document.getElementById("empty-state");
 const pathParamsSection = document.getElementById("path-params-section");
 const pathParamsRows = document.getElementById("path-params-rows");
+const headersRows = document.getElementById("headers-rows");
+const addHeaderBtn = document.getElementById("add-header-btn");
 
 const fields = {
   id: document.getElementById("mock-id"),
@@ -24,6 +26,46 @@ const fields = {
 };
 
 fields.path.addEventListener("input", () => refreshPathParams());
+
+addHeaderBtn.addEventListener("click", () => addHeaderRow());
+
+headersRows.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-remove-header]");
+  if (!btn) return;
+  btn.closest(".header-row")?.remove();
+});
+
+function addHeaderRow(name = "", value = "") {
+  const row = document.createElement("div");
+  row.className = "header-row";
+  row.innerHTML = `
+    <input type="text" placeholder="Header-Name" data-header-name>
+    <input type="text" placeholder="value" data-header-value>
+    <button type="button" class="header-remove" data-remove-header aria-label="Remove">&times;</button>
+  `;
+  row.querySelector("[data-header-name]").value = name;
+  row.querySelector("[data-header-value]").value = value;
+  headersRows.appendChild(row);
+}
+
+function collectHeaders() {
+  const out = {};
+  headersRows.querySelectorAll(".header-row").forEach((row) => {
+    const name = row.querySelector("[data-header-name]").value.trim();
+    if (!name) return;
+    const value = row.querySelector("[data-header-value]").value;
+    out[name] = value;
+  });
+  return out;
+}
+
+function populateHeaders(headers) {
+  headersRows.innerHTML = "";
+  if (!headers) return;
+  for (const [name, value] of Object.entries(headers)) {
+    addHeaderRow(name, value);
+  }
+}
 
 function parseParamNames(path) {
   const names = [];
@@ -146,6 +188,7 @@ async function loadIntoForm(id) {
     fields.contentType.value = m.contentType || "";
     fields.body.value = m.body || "";
     refreshPathParams(m.pathParams || {});
+    populateHeaders(m.headers);
     formTitle.textContent = "Edit mock";
     submitBtn.textContent = "Update";
     formError.hidden = true;
@@ -171,6 +214,7 @@ form.addEventListener("submit", async (e) => {
   formError.hidden = true;
 
   const pathParams = collectPathParams();
+  const headers = collectHeaders();
   const payload = {
     method: fields.method.value,
     path: fields.path.value,
@@ -180,6 +224,9 @@ form.addEventListener("submit", async (e) => {
   };
   if (Object.keys(pathParams).length > 0) {
     payload.pathParams = pathParams;
+  }
+  if (Object.keys(headers).length > 0) {
+    payload.headers = headers;
   }
 
   const id = fields.id.value;
@@ -212,6 +259,7 @@ function resetForm() {
   fields.statusCode.value = 200;
   fields.contentType.value = "application/json";
   refreshPathParams();
+  populateHeaders();
   formTitle.textContent = "New mock";
   submitBtn.textContent = "Create";
   formError.hidden = true;
