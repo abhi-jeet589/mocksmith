@@ -15,7 +15,7 @@ func (m *Mock) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := withTimeout(r.Context())
 	defer cancel()
 
-	mock, err := m.Repo.FindByRoute(ctx, r.Method, r.URL.Path)
+	result, err := m.Repo.FindByRoute(ctx, r.Method, r.URL.Path)
 	if errors.Is(err, repository.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "no mock registered for "+r.Method+" "+r.URL.Path)
 		return
@@ -25,8 +25,11 @@ func (m *Mock) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mock := result.Mock
+	params := result.Params // nil for exact-match mocks
+
 	for k, v := range mock.Headers {
-		w.Header().Set(k, v)
+		w.Header().Set(k, repository.ApplyTemplate(v, params))
 	}
 	if mock.ContentType != "" {
 		w.Header().Set("Content-Type", mock.ContentType)
@@ -37,5 +40,5 @@ func (m *Mock) Serve(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusOK
 	}
 	w.WriteHeader(status)
-	_, _ = w.Write([]byte(mock.Body))
+	_, _ = w.Write([]byte(repository.ApplyTemplate(mock.Body, params)))
 }

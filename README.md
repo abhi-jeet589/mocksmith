@@ -59,8 +59,23 @@ Example: registering `GET /users/{id}` with `{"id": "int"}` matches
 
 **Lookup precedence:** exact matches always win over pattern matches. Among
 patterns the first registered wins — if your patterns can overlap, register
-more specific ones first or rely on the order shown in the UI. Captured
-values aren't yet exposed in the response body — that's the next iteration.
+more specific ones first or rely on the order shown in the UI.
+
+### Templating the response
+
+Captured path-parameter values are substituted into the response body and
+header values using `{{name}}` tokens. Tokens without a matching path
+parameter are left as-is (handy for spotting typos).
+
+Captures are always strings — you decide whether to quote them in the body:
+
+| Mock                                                  | Request          | Response body         |
+| ----------------------------------------------------- | ---------------- | --------------------- |
+| `GET /users/{id}` (`id: int`) body `{"id": {{id}}}`   | `GET /users/42`  | `{"id": 42}`          |
+| `GET /users/{id}` (`id: int`) body `{"id": "{{id}}"}` | `GET /users/42`  | `{"id": "42"}`        |
+
+Whitespace inside the braces is tolerated: `{{ id }}` works the same as
+`{{id}}`.
 
 ## Admin API
 

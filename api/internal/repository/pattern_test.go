@@ -251,6 +251,88 @@ func TestPatternToRegex_ReturnsNil(t *testing.T) {
 	}
 }
 
+func TestExtractCapturedValues(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		path   string
+		params map[string]string
+		input  string
+		want   map[string]string
+	}{
+		{
+			name:   "single int param",
+			path:   "/users/{id}",
+			params: map[string]string{"id": "int"},
+			input:  "/users/42",
+			want:   map[string]string{"id": "42"},
+		},
+		{
+			name:   "negative int",
+			path:   "/users/{id}",
+			params: map[string]string{"id": "int"},
+			input:  "/users/-7",
+			want:   map[string]string{"id": "-7"},
+		},
+		{
+			name:   "multiple mixed params",
+			path:   "/orgs/{org}/users/{userId}",
+			params: map[string]string{"org": "string", "userId": "int"},
+			input:  "/orgs/acme/users/42",
+			want:   map[string]string{"org": "acme", "userId": "42"},
+		},
+		{
+			name:   "uuid param",
+			path:   "/items/{id}",
+			params: map[string]string{"id": "uuid"},
+			input:  "/items/550e8400-e29b-41d4-a716-446655440000",
+			want:   map[string]string{"id": "550e8400-e29b-41d4-a716-446655440000"},
+		},
+		{
+			name:   "no match returns nil",
+			path:   "/users/{id}",
+			params: map[string]string{"id": "int"},
+			input:  "/users/abc",
+			want:   nil,
+		},
+		{
+			name:   "literal path with no params",
+			path:   "/health",
+			params: nil,
+			input:  "/health",
+			want:   map[string]string{},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			re := PatternToRegex(tc.path, tc.params)
+			if re == nil {
+				t.Fatalf("PatternToRegex(%q, %v) returned nil", tc.path, tc.params)
+			}
+			got := ExtractCapturedValues(re, tc.input)
+			if tc.want == nil {
+				if got != nil {
+					t.Errorf("expected nil, got %v", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatalf("expected %v, got nil", tc.want)
+			}
+			if len(got) != len(tc.want) {
+				t.Errorf("len = %d, want %d (got=%v want=%v)", len(got), len(tc.want), got, tc.want)
+			}
+			for k, v := range tc.want {
+				if got[k] != v {
+					t.Errorf("[%q] = %q, want %q", k, got[k], v)
+				}
+			}
+		})
+	}
+}
+
 func equalSlices(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

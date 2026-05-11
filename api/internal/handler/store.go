@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/abhi-jeet589/mocksmith/internal/model"
+	"github.com/abhi-jeet589/mocksmith/internal/repository"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -15,5 +16,5 @@ type Store interface {
 	Get(ctx context.Context, id bson.ObjectID) (*model.Mock, error)
 	Update(ctx context.Context, id bson.ObjectID, m *model.Mock) error
 	Delete(ctx context.Context, id bson.ObjectID) error
-	FindByRoute(ctx context.Context, method, path string) (*model.Mock, error)
+	FindByRoute(ctx context.Context, method, path string) (*repository.MatchResult, error)
 }

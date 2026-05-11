@@ -76,9 +76,11 @@ func ExtractPathParamNames(path string) ([]string, error) {
 }
 
 // PatternToRegex builds an anchored regex from a pattern path and its declared
-// param types. Returns nil if the path is malformed, references an unknown
-// param name, or uses an unsupported type — callers should skip such entries
-// during lookup.
+// param types. Each "{name}" becomes a named capture group "(?P<name>seg)" so
+// captured values can be retrieved by name via ExtractCapturedValues.
+//
+// Returns nil if the path is malformed, references an unknown param name, or
+// uses an unsupported type — callers should skip such entries during lookup.
 func PatternToRegex(path string, params map[string]string) *regexp.Regexp {
 	var b strings.Builder
 	b.WriteString("^")
@@ -106,7 +108,9 @@ func PatternToRegex(path string, params map[string]string) *regexp.Regexp {
 			if !ok {
 				return nil
 			}
-			b.WriteString("(")
+			b.WriteString("(?P<")
+			b.WriteString(name)
+			b.WriteString(">")
 			b.WriteString(seg)
 			b.WriteString(")")
 			i = end + 1
@@ -122,4 +126,22 @@ func PatternToRegex(path string, params map[string]string) *regexp.Regexp {
 		return nil
 	}
 	return re
+}
+
+// ExtractCapturedValues runs re against path and returns a map of named
+// capture name → captured value. Returns nil if path does not match.
+func ExtractCapturedValues(re *regexp.Regexp, path string) map[string]string {
+	match := re.FindStringSubmatch(path)
+	if match == nil {
+		return nil
+	}
+	names := re.SubexpNames()
+	out := make(map[string]string, len(match)-1)
+	for i, name := range names {
+		if i == 0 || name == "" {
+			continue
+		}
+		out[name] = match[i]
+	}
+	return out
 }

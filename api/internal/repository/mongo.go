@@ -16,6 +16,14 @@ var (
 	ErrConflict = errors.New("mock with this method and path already exists")
 )
 
+// MatchResult is what FindByRoute returns: the matched mock plus, for pattern
+// matches, the captured path-parameter values keyed by name. Params is nil for
+// exact-path matches.
+type MatchResult struct {
+	Mock   *model.Mock
+	Params map[string]string
+}
+
 type Repository struct {
 	client *mongo.Client
 	mocks  *mongo.Collection
@@ -99,7 +107,7 @@ func (r *Repository) Get(ctx context.Context, id bson.ObjectID) (*model.Mock, er
 	return &m, nil
 }
 
-func (r *Repository) FindByRoute(ctx context.Context, method, path string) (*model.Mock, error) {
+func (r *Repository) FindByRoute(ctx context.Context, method, path string) (*MatchResult, error) {
 	// 1. Exact match (literal path) — fast path, uses the unique index.
 	var m model.Mock
 	err := r.mocks.FindOne(ctx, bson.D{
@@ -107,14 +115,15 @@ func (r *Repository) FindByRoute(ctx context.Context, method, path string) (*mod
 		{Key: "path", Value: path},
 	}).Decode(&m)
 	if err == nil {
-		return &m, nil
+		return &MatchResult{Mock: &m}, nil
 	}
 	if !errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, err
 	}
 
 	// 2. Pattern fallback — iterate mocks flagged as patterns for this method
-	// and return the first whose compiled regex matches.
+	// and return the first whose compiled regex matches, along with the
+	// captured path-parameter values.
 	cur, err := r.mocks.Find(ctx, bson.D{
 		{Key: "method", Value: method},
 		{Key: "isPattern", Value: true},
@@ -133,8 +142,8 @@ func (r *Repository) FindByRoute(ctx context.Context, method, path string) (*mod
 		if re == nil {
 			continue
 		}
-		if re.MatchString(path) {
-			return &candidate, nil
+		if params := ExtractCapturedValues(re, path); params != nil {
+			return &MatchResult{Mock: &candidate, Params: params}, nil
 		}
 	}
 	if err := cur.Err(); err != nil {
