@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mocksmith</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>mocksmith</h1>
+      <p>Define mock endpoints. They're served back on this host at the same path.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2 id="form-title">New mock</h2>
+        <form id="mock-form" class="card">
+          <input type="hidden" id="mock-id">
+          <div class="row-2">
+            <label>
+              Method
+              <select id="method">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+              </select>
+            </label>
+            <label>
+              Status code
+              <input type="number" id="statusCode" min="100" max="599" value="200" required>
+            </label>
+          </div>
+          <label>
+            Path
+            <input type="text" id="path" placeholder="/users/42" required>
+          </label>
+          <label>
+            Content type
+            <input type="text" id="contentType" value="application/json">
+          </label>
+          <label>
+            Body
+            <textarea id="body" rows="6" placeholder='{"hello":"world"}'></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit" class="primary" id="submit-btn">Create</button>
+            <button type="button" class="ghost" id="reset-btn">Reset</button>
+          </div>
+          <p id="form-error" class="error" hidden></p>
+        </form>
+      </section>
+
+      <section>
+        <div class="list-header">
+          <h2>Existing mocks</h2>
+          <button class="small" id="refresh-btn">Refresh</button>
+        </div>
+        <div class="card">
+          <table id="mocks-table">
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p id="empty-state" hidden>No mocks yet.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Env
+.env
+.env.local
+
+# Go build artifacts
+/api/bin/
+/api/dist/
+*.test
+*.out
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
