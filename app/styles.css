@@ -276,6 +276,58 @@ tbody tr:hover {
   gap: 0.375rem;
 }
 
+.hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 0.125rem;
+}
+
+.hint code {
+  background: #eef0f3;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.95em;
+}
+
+.path-params {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.path-params-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.path-param-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.path-param-name {
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.path-param-name code {
+  background: var(--surface);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-size: 0.85em;
+}
+
 .error {
   margin: 0;
   padding: 0.625rem 0.875rem;

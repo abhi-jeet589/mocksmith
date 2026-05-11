@@ -41,8 +41,26 @@ import requests
 r = requests.get("http://localhost:8080/users/42")
 ```
 
-Match is exact — method, path, and trailing slash all count. No path-params
-or wildcards today.
+Match is exact: method, path, and trailing slash all count.
+
+### Path parameters
+
+A path may contain `{name}` tokens. For every token you must declare its
+data type — the UI surfaces a row per token as you type. Supported types:
+
+| Type     | Matches                                             |
+| -------- | --------------------------------------------------- |
+| `string` | one path segment, any characters except `/`         |
+| `int`    | optional leading `-` followed by digits             |
+| `uuid`   | canonical 8-4-4-4-12 hex UUID                       |
+
+Example: registering `GET /users/{id}` with `{"id": "int"}` matches
+`/users/42` but not `/users/abc`.
+
+**Lookup precedence:** exact matches always win over pattern matches. Among
+patterns the first registered wins — if your patterns can overlap, register
+more specific ones first or rely on the order shown in the UI. Captured
+values aren't yet exposed in the response body — that's the next iteration.
 
 ## Admin API
 

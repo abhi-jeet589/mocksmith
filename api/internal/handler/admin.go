@@ -30,6 +30,7 @@ type mockInput struct {
 	StatusCode  int               `json:"statusCode"`
 	ContentType string            `json:"contentType,omitempty"`
 	Headers     map[string]string `json:"headers,omitempty"`
+	PathParams  map[string]string `json:"pathParams,omitempty"`
 	Body        string            `json:"body"`
 }
 
@@ -63,6 +64,30 @@ func (in mockInput) validate() error {
 			return errors.New("path " + normalized + " is reserved")
 		}
 	}
+
+	// Path parameters: every {name} in the path must have a declared type in
+	// pathParams, and every declared type must correspond to a {name}. Types
+	// must be from the supported set.
+	names, err := repository.ExtractPathParamNames(normalized)
+	if err != nil {
+		return err
+	}
+	declared := in.PathParams
+	nameSet := make(map[string]struct{}, len(names))
+	for _, n := range names {
+		nameSet[n] = struct{}{}
+		if _, ok := declared[n]; !ok {
+			return errors.New("path parameter " + n + " is missing a declared type")
+		}
+	}
+	for n, typ := range declared {
+		if _, ok := nameSet[n]; !ok {
+			return errors.New("declared type for unknown path parameter " + n)
+		}
+		if !repository.IsSupportedPathParamType(typ) {
+			return errors.New("unsupported type " + typ + " for path parameter " + n)
+		}
+	}
 	return nil
 }
 
@@ -73,6 +98,7 @@ func (in mockInput) toModel() *model.Mock {
 		StatusCode:  in.StatusCode,
 		ContentType: in.ContentType,
 		Headers:     in.Headers,
+		PathParams:  in.PathParams,
 		Body:        in.Body,
 	}
 }

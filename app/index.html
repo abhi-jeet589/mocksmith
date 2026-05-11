@@ -36,8 +36,13 @@
           </div>
           <label>
             Path
-            <input type="text" id="path" placeholder="/users/42" required>
+            <input type="text" id="path" placeholder="/users/{id} or /users/42" required>
+            <small class="hint">Use <code>{name}</code> to declare a path parameter.</small>
           </label>
+          <div id="path-params-section" class="path-params" hidden>
+            <span class="path-params-label">Path parameters</span>
+            <div id="path-params-rows"></div>
+          </div>
           <label>
             Content type
             <input type="text" id="contentType" value="application/json">

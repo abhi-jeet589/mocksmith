@@ -58,6 +58,7 @@ func (r *Repository) Create(ctx context.Context, m *model.Mock) error {
 	now := time.Now().UTC()
 	m.CreatedAt = now
 	m.UpdatedAt = now
+	m.IsPattern = HasPatternSyntax(m.Path)
 
 	res, err := r.mocks.InsertOne(ctx, m)
 	if err != nil {
@@ -99,22 +100,52 @@ func (r *Repository) Get(ctx context.Context, id bson.ObjectID) (*model.Mock, er
 }
 
 func (r *Repository) FindByRoute(ctx context.Context, method, path string) (*model.Mock, error) {
+	// 1. Exact match (literal path) — fast path, uses the unique index.
 	var m model.Mock
 	err := r.mocks.FindOne(ctx, bson.D{
 		{Key: "method", Value: method},
 		{Key: "path", Value: path},
 	}).Decode(&m)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, ErrNotFound
+	if err == nil {
+		return &m, nil
 	}
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
+	}
+
+	// 2. Pattern fallback — iterate mocks flagged as patterns for this method
+	// and return the first whose compiled regex matches.
+	cur, err := r.mocks.Find(ctx, bson.D{
+		{Key: "method", Value: method},
+		{Key: "isPattern", Value: true},
+	})
 	if err != nil {
 		return nil, err
 	}
-	return &m, nil
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		var candidate model.Mock
+		if err := cur.Decode(&candidate); err != nil {
+			continue
+		}
+		re := PatternToRegex(candidate.Path, candidate.PathParams)
+		if re == nil {
+			continue
+		}
+		if re.MatchString(path) {
+			return &candidate, nil
+		}
+	}
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNotFound
 }
 
 func (r *Repository) Update(ctx context.Context, id bson.ObjectID, m *model.Mock) error {
 	m.UpdatedAt = time.Now().UTC()
+	m.IsPattern = HasPatternSyntax(m.Path)
 	res, err := r.mocks.UpdateOne(ctx,
 		bson.D{{Key: "_id", Value: id}},
 		bson.D{{Key: "$set", Value: bson.D{
@@ -124,6 +155,8 @@ func (r *Repository) Update(ctx context.Context, id bson.ObjectID, m *model.Mock
 			{Key: "contentType", Value: m.ContentType},
 			{Key: "headers", Value: m.Headers},
 			{Key: "body", Value: m.Body},
+			{Key: "isPattern", Value: m.IsPattern},
+			{Key: "pathParams", Value: m.PathParams},
 			{Key: "updatedAt", Value: m.UpdatedAt},
 		}}},
 	)

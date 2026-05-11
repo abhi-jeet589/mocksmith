@@ -1,4 +1,6 @@
 const API = "/admin/mocks";
+const PARAM_TYPES = ["string", "int", "uuid"];
+const PARAM_TOKEN_RE = /\{([^/{}]+)\}/g;
 
 const form = document.getElementById("mock-form");
 const formTitle = document.getElementById("form-title");
@@ -9,6 +11,8 @@ const formError = document.getElementById("form-error");
 const tableBody = document.querySelector("#mocks-table tbody");
 const table = document.getElementById("mocks-table");
 const emptyState = document.getElementById("empty-state");
+const pathParamsSection = document.getElementById("path-params-section");
+const pathParamsRows = document.getElementById("path-params-rows");
 
 const fields = {
   id: document.getElementById("mock-id"),
@@ -18,6 +22,61 @@ const fields = {
   contentType: document.getElementById("contentType"),
   body: document.getElementById("body"),
 };
+
+fields.path.addEventListener("input", () => refreshPathParams());
+
+function parseParamNames(path) {
+  const names = [];
+  const seen = new Set();
+  for (const match of String(path).matchAll(PARAM_TOKEN_RE)) {
+    const name = match[1];
+    if (!seen.has(name)) {
+      seen.add(name);
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+function refreshPathParams(preset) {
+  const names = parseParamNames(fields.path.value);
+
+  if (names.length === 0) {
+    pathParamsSection.hidden = true;
+    pathParamsRows.innerHTML = "";
+    return;
+  }
+
+  const existing = {};
+  pathParamsRows.querySelectorAll("select[data-param-name]").forEach((sel) => {
+    existing[sel.dataset.paramName] = sel.value;
+  });
+
+  pathParamsRows.innerHTML = "";
+  for (const name of names) {
+    const row = document.createElement("div");
+    row.className = "path-param-row";
+    const selected = (preset && preset[name]) || existing[name] || PARAM_TYPES[0];
+    row.innerHTML = `
+      <span class="path-param-name"><code>${escapeHtml(name)}</code></span>
+      <select data-param-name="${escapeAttr(name)}">
+        ${PARAM_TYPES.map(
+          (t) => `<option value="${t}"${t === selected ? " selected" : ""}>${t}</option>`,
+        ).join("")}
+      </select>
+    `;
+    pathParamsRows.appendChild(row);
+  }
+  pathParamsSection.hidden = false;
+}
+
+function collectPathParams() {
+  const params = {};
+  pathParamsRows.querySelectorAll("select[data-param-name]").forEach((sel) => {
+    params[sel.dataset.paramName] = sel.value;
+  });
+  return params;
+}
 
 async function loadMocks() {
   try {
@@ -86,6 +145,7 @@ async function loadIntoForm(id) {
     fields.statusCode.value = m.statusCode;
     fields.contentType.value = m.contentType || "";
     fields.body.value = m.body || "";
+    refreshPathParams(m.pathParams || {});
     formTitle.textContent = "Edit mock";
     submitBtn.textContent = "Update";
     formError.hidden = true;
@@ -110,6 +170,7 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   formError.hidden = true;
 
+  const pathParams = collectPathParams();
   const payload = {
     method: fields.method.value,
     path: fields.path.value,
@@ -117,6 +178,9 @@ form.addEventListener("submit", async (e) => {
     contentType: fields.contentType.value || undefined,
     body: fields.body.value,
   };
+  if (Object.keys(pathParams).length > 0) {
+    payload.pathParams = pathParams;
+  }
 
   const id = fields.id.value;
   const url = id ? `${API}/${id}` : API;
@@ -147,6 +211,7 @@ function resetForm() {
   fields.id.value = "";
   fields.statusCode.value = 200;
   fields.contentType.value = "application/json";
+  refreshPathParams();
   formTitle.textContent = "New mock";
   submitBtn.textContent = "Create";
   formError.hidden = true;
